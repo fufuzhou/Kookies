@@ -38,4 +38,36 @@ public interface EntertainmentService {
      * @param group 群
      */
     void darkJoke(long id, Group group);
+
+    /**
+     * 本周词云
+     *
+     * @param id 发送者
+     * @param group 群
+     */
+    void yesterdayWord(long id, Group group);
+
+    /**
+     * 美女
+     *
+     * @param id 发送者
+     * @param group 群
+     */
+    void beautifulGirl(long id, Group group);
+
+    /**
+     * 本周词云
+     *
+     * @param id 发送者
+     * @param group 群
+     */
+    void weekWord(long id, Group group);
+
+    /**
+     * 词频统计
+     *
+     * @param id 发送者
+     * @param group 群
+     */
+    void wordStatistics(long id, Group group);
 }

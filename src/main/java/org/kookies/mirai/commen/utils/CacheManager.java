@@ -52,6 +52,10 @@ public class CacheManager {
                 return;
             }
 
+            if (message.trim().startsWith("[不支持的消息")) {
+                return;
+            }
+
             // 初始化群组目录，确保后续缓存更新操作的文件目录正确。
             initDir(group);
             // 更新个人消息缓存，将消息存储到指定发送者和群组的缓存中。
@@ -124,6 +128,121 @@ public class CacheManager {
         return new File(groupDir, LocalDate.now()+ ".txt");
     }
 
+    /**
+     * 获取昨天的单词计数文件。
+     * <p>
+     * 此方法用于根据群组ID生成并返回一个文件对象，该对象代表了昨天的单词计数文件。
+     * 文件名格式为日期.txt，日期为昨天的日期。文件存储在特定群组的目录中。
+     *
+     * @param groupId 群组ID，用于确定文件存储的特定群组目录。
+     * @return 昨天的单词计数文件的File对象。
+     */
+    public static File getYesterdayWordCountFile(Long groupId) {
+        // 根据群组ID和启用的群组列表生成群组目录名
+        String groupDirName = getGroupDirName(getConfig().getEnableGroupList(), groupId);
+        // 创建群组目录的File对象
+        File groupDir = new File(DataPathInfo.MESSAGE_CACHE_DIR_PATH, groupDirName);
+        // 返回昨天的单词计数文件的File对象
+        return new File(groupDir, LocalDate.now().minusDays(1) + ".txt");
+    }
+
+    /**
+     * 根据群组ID获取一周单词统计文件。
+     * <p>
+     * 该方法用于创建并返回一个文件，该文件包含了指定群组一周内的单词计数。
+     * 如果需要，会先生成相应的群组目录和临时统计文件。
+     *
+     * @param groupId 群组的唯一标识符，用于定位特定群组的单词统计文件。
+     * @return 返回一个File对象，指向包含一周单词计数的临时文件。
+     * @throws DataWriteException 如果写入文件过程中发生IO异常，则抛出此异常。
+     */
+    public static File getWeekWordCountFile(Long groupId) {
+        // 根据群组ID和启用的群组列表生成群组目录名
+        String groupDirName = getGroupDirName(getConfig().getEnableGroupList(), groupId);
+        // 创建群组目录的File对象
+        File groupDir = new File(DataPathInfo.MESSAGE_CACHE_DIR_PATH, groupDirName);
+
+        // 在群组目录下生成一周的单词统计
+        Map<String, Integer> weekCount = generateWeekCount(groupDir);
+
+        // 创建临时文件，用于存储一周的单词计数
+        File tempFile = new File(groupDir, "tempCnt.txt");
+
+        try {
+            // 将单词计数写入到临时文件中
+            FileManager.writeWordMap2Txt(tempFile.getPath(), weekCount);
+        } catch (IOException e) {
+            // 如果写入文件发生IO异常，抛出自定义的数据写入异常
+            throw new DataWriteException(MsgConstant.WEEK_WORD_COUNT_WRITE_ERROR);
+        }
+
+        // 返回临时文件File对象
+        return tempFile;
+    }
+
+    /**
+     * 根据群组ID获取该群组一周内各天的消息数量统计。
+     * 该方法主要用于统计指定群组在一周内每天的消息数量，以便进行数据分析或展示。
+     *
+     * @param groupId 群组的唯一标识符，用于定位特定群组的消息数据。
+     * @return 返回一个Map，其中键为一周内的日期（字符串格式），值为该日期对应的消息数量。
+     */
+    public static Map<String, Integer> getWeekCount(Long groupId) {
+        // 根据群组ID和启用的群组列表生成群组目录名，用于定位群组的消息缓存目录。
+        String groupDirName = getGroupDirName(getConfig().getEnableGroupList(), groupId);
+        // 创建群组目录的File对象，用于后续访问或操作该群组的消息文件。
+        File groupDir = new File(DataPathInfo.MESSAGE_CACHE_DIR_PATH, groupDirName);
+
+        // 调用generateWeekCount方法，对群组目录下的消息文件进行统计，返回一周内每天的消息数量。
+        return generateWeekCount(groupDir);
+    }
+
+
+    /**
+     * 根据指定的目录生成过去七天的单词计数统计。
+     * <p>
+     * 该方法会检查过去七天每一天的单词统计文件，并将这些统计合并到一个单一的映射中。
+     * 如果任何一天的统计文件不存在，将抛出DataLoadException异常。
+     *
+     * @param groupDir 字符串统计文件所在的目录。
+     * @return 返回一个映射，其中键是单词，值是该单词在过去七天中的总出现次数。
+     * @throws DataLoadException 如果任何一天的统计文件不存在，则抛出此异常。
+     */
+    private static Map<String, Integer> generateWeekCount(File groupDir) {
+        // 初始化一个映射，用于存储过去七天的单词计数总和。
+        Map<String, Integer> weekMap = new HashMap<>();
+        // 遍历过去七天。
+        for (int i = 0; i < 7; i++) {
+            // 根据当前日期减去天数生成文件名，并构造文件对象。
+            File wordCnt = new File(groupDir, LocalDate.now().minusDays(i) + ".txt");
+            // 检查该日期的统计文件是否存在。
+            if (wordCnt.exists()) {
+                Map<String, Integer> tempMap;
+                try {
+                    // 读取该日期的统计文件内容到临时映射中。
+                    tempMap = FileManager.readWordMap(wordCnt.getPath());
+                } catch (IOException e) {
+                    // 如果读取文件时发生IO异常，抛出自定义的数据加载异常。
+                    throw new DataLoadException(MsgConstant.WEEK_WORD_COUNT_LOAD_ERROR);
+                }
+                // 将临时映射中的单词计数合并到weekMap中。
+                tempMap.forEach((key, value) -> {
+                    if (!key.trim().isEmpty()) {
+                        if (weekMap.containsKey(key)) {
+                            weekMap.put(key, weekMap.get(key) + value);
+                        } else {
+                            weekMap.put(key, value);
+                        }
+                    }
+                });
+            } else {
+                // 如果有任何一天的统计文件不存在，抛出自定义的数据加载异常。
+                throw new DataLoadException(MsgConstant.WEEK_WORD_COUNT_ISNT_HAS_SEVEN_DAYS);
+            }
+        }
+        // 返回合并后的单词计数映射。
+        return weekMap;
+    }
 
     /**
      * 更新个人消息缓存。
