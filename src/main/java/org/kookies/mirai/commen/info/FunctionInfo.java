@@ -31,4 +31,8 @@ public class FunctionInfo {
 
     public static final String BEAUTIFUL_GIRL = "先打胶吧";
 
+    public static final String MESS_AROUND_DAILY = "摸鱼日报";
+
+    public static final String OLYMPIC_DAILY = "奥运日报";
+
 }

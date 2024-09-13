@@ -23,6 +23,7 @@ import org.kookies.mirai.pojo.entity.api.request.runoob.CodeRunRequestBody;
 import org.kookies.mirai.pojo.entity.api.request.voice.VoiceRequest;
 
 import java.io.IOException;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.time.LocalDate;
 import java.util.List;
@@ -80,6 +81,17 @@ public class ApiRequester {
                 .addHeader("Content-Type", String.valueOf(RunoobApiConstant.FORM_MEDIA_TYPE))
                 .build();
 
+        return HTTP_CLIENT.newCall(request).execute();
+    }
+
+    public static Response getOlympicData() throws IOException{
+        String url = BaiduApiConstant.OLYMPIC_URL +
+                "?page=home&match=2024年巴黎奥运会&tab=奖牌榜&&tab_type=single&request__node__params=1";
+
+        Request request = new Request.Builder()
+                .url(url)
+                .method(RequestType.GET.getMethod(), null)
+                .build();
         return HTTP_CLIENT.newCall(request).execute();
     }
 
@@ -283,7 +295,7 @@ public class ApiRequester {
         RequestBody body = createBaiduRequestBody(messages, sender);
         // 构建请求，包括设置URL、请求方法、请求头和请求体
         Request request = new Request.Builder()
-                .url(BaiduApiConstant.API_URL +
+                .url(BaiduApiConstant.AI_API_URL +
                         "?access_token=" + getBaiduAccessToken())
                 .method(RequestType.POST.getMethod(), body)
                 .addHeader("Content-Type", String.valueOf(BaiduApiConstant.JSON_MEDIA_TYPE))
@@ -370,4 +382,15 @@ public class ApiRequester {
         return HTTP_CLIENT.newCall(request).execute();
     }
 
+    public static String getFuckSomebody() throws IOException{
+        Random random = new Random();
+
+        Request request = new Request.Builder()
+                .url(LolimiApiConstant.FUCK_SOMEBODY_API +
+                        "?msg=" + (random.nextInt(5) + 1))
+                .method(RequestType.GET.getMethod(), null)
+                .build();
+
+        return HTTP_CLIENT.newCall(request).execute().body().string();
+    }
 }

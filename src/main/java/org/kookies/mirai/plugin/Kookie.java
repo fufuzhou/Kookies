@@ -21,6 +21,7 @@ import org.kookies.mirai.commen.info.AuthorInfo;
 import org.kookies.mirai.commen.info.FunctionInfo;
 import org.kookies.mirai.commen.utils.CacheManager;
 import org.kookies.mirai.commen.utils.JobScheduler;
+import org.kookies.mirai.commen.utils.ProbabilityTrigger;
 import org.kookies.mirai.plugin.service.*;
 import org.kookies.mirai.plugin.service.Impl.*;
 import org.kookies.mirai.pojo.entity.VoiceRole;
@@ -77,12 +78,22 @@ public final class Kookie extends JavaPlugin {
             String userName = g.getSenderName();
             Group group = g.getGroup();
 
+            // at me [mirai:at:111111111]
+
+
             String content = "";
             if (!msg.serializeToMiraiCode().startsWith("[mirai:")) {
                 content = msg.contentToString();
             }
 
             CacheManager.setCache(sender.getId(), group.getId(), content);
+
+
+            if (ProbabilityTrigger.shouldTrigger(0.1)) {
+                getLogger().info("随机表情, 触发者：" + userName);
+                entertainmentService.randomEmoji(sender.getId(), group);
+
+            }
 
             String[] msgArr = content.split(" ");
 
@@ -185,6 +196,17 @@ public final class Kookie extends JavaPlugin {
                     getLogger().info("本周词云, 调用者：" + userName);
                     entertainmentService.weekWord(sender.getId(), group);
                     break;
+
+                // 摸鱼日报
+                case FunctionInfo.MESS_AROUND_DAILY:
+                    getLogger().info("摸鱼日报, 调用者：" + userName);
+                    signInService.messAroundDaily(sender.getId(), group);
+                    break;
+                // 奥运日报
+//                case FunctionInfo.OLYMPIC_DAILY:
+//                    getLogger().info("奥运日报, 调用者：" + userName);
+//                    convenienceService.olympicDaily(sender.getId(), group);
+//                    break;
             }
         });
 
@@ -192,6 +214,8 @@ public final class Kookie extends JavaPlugin {
             // 监听好友消息
             getLogger().info(f.getMessage().contentToString());
         });
+
+        // TODO 敏感词检测的群管理功能
 
     }
 

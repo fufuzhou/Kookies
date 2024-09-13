@@ -4,9 +4,13 @@ import org.ansj.domain.Result;
 import org.ansj.domain.Term;
 import org.ansj.splitWord.analysis.ToAnalysis;
 import org.apache.commons.lang3.ArrayUtils;
+import org.kookies.mirai.commen.info.DataPathInfo;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -58,6 +62,56 @@ public class TextAnalyzer {
                 // 对每个分组计算出现的总次数，这里使用summingInt函数来实现
                 Collectors.summingInt(e -> 1)));
     }
+
+    /**
+     * 根据停用词列表过滤文本中的词频统计结果
+     * <p>
+     * 本函数的目的是从给定的词频统计文件中移除所有属于停用词列表中的词
+     * 停用词是指在文本中出现频率很高，但对文本内容影响较小的词，如“的”、“和”等
+     * 过滤这些词可以帮助我们更关注于文本中重要的词汇
+     *
+     * @param wordCountFile 词频统计结果文件，该文件包含了每个词及其出现的次数
+     * @throws IOException 如果在读取或写入文件过程中发生错误
+     */
+    public static void filtrateStopWords(File wordCountFile) throws IOException {
+        // 读取词频统计结果到map中，每个entry包含词及其出现的次数
+        Map<String, Integer> map = FileManager.readWordMap(wordCountFile.getPath());
+
+        // 读取停用词列表
+        Set<String> stopWords = FileManager.readStopWords(DataPathInfo.STOP_WORD_PATH);
+
+        // 移除map中所有停用词
+        map.entrySet().removeIf(entry ->
+                stopWords.contains(entry.getKey())
+                || entry.getKey().isEmpty()
+        );
+
+        // 将过滤后的词频统计结果写入到新的文本文件中
+        FileManager.writeWordMap2Txt(wordCountFile.getPath(), map);
+    }
+
+    /**
+     * 过滤掉停用词
+     * <p>
+     * 该方法接收一个Map对象，其中包含字符串键和它们的整数值，
+     * 并返回一个新的Map对象，其中不包含停用词和空字符串键
+     *
+     * @param map 原始的字符串键和整数值的Map对象
+     * @return 包含非停用词和非空字符串键的Map对象
+     * @throws IOException 如果无法读取停用词文件，则抛出此异常
+     */
+    public static Map<String, Integer> filtrateStopWords(Map<String, Integer> map) throws IOException{
+        // 读取停用词列表
+        Set<String> stopWords = FileManager.readStopWords(DataPathInfo.STOP_WORD_PATH);
+        // 过滤掉停用词和空字符串，并收集为新的Map对象
+        return map.entrySet().stream()
+                .filter(entry ->
+                        !stopWords.contains(entry.getKey())
+                                && !entry.getKey().isEmpty()
+                )
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
 
     /**
      * 统计句子中满足特定长度条件的单词出现次数。
@@ -137,19 +191,25 @@ public class TextAnalyzer {
 
 
     /**
-     * 过滤掉Map中值为"m"的条目。
-     * 该方法通过流操作对输入的Map进行过滤，移除所有值为"m"的键值对，返回一个新的Map。
+     * 过滤字典中特定值的条目。
+     * <p>
+     * 该方法通过流操作过滤出不包含特定字符（'m', 'r', 'p', 'c', 'u'）值的键值对。
      *
-     * @param words 输入的Map，其中键为字符串，值也为字符串。
-     * @return 返回一个新的Map，其中不包含值为"m"的条目。
+     * @param words 原始字典，包含待过滤的键值对。
+     * @return 过滤后的字典，不包含特定字符值的条目。
      */
     private static Map<String, String> filter(Map<String, String> words) {
         return words.entrySet().stream()
+                // 通过多次过滤操作移除值为特定字符的条目
                 .filter(entry -> !"m".equals(entry.getValue()))
                 .filter(entry -> !"r".equals(entry.getValue()))
                 .filter(entry -> !"p".equals(entry.getValue()))
+                .filter(entry -> !"c".equals(entry.getValue()))
+                .filter(entry -> !"u".equals(entry.getValue()))
+                // 收集过滤后的条目组成新的字典
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
+
 
 
 
